@@ -24,7 +24,9 @@ public static class GeradorLabirinto
     // Tiles de "pedra" em volta do labirinto, para não aparecer o vazio
     private const int Margem = 8;
 
-    public static Resultado Gerar(int colunas, int linhas, int semente, Vector3 origem, int quantidadeItens)
+    /// <param name="lacos">Fração (0 a 1) de paredes extras abertas para criar caminhos alternativos.</param>
+    public static Resultado Gerar(int colunas, int linhas, int semente, Vector3 origem, int quantidadeItens,
+                                  Color corChao, Color corParede, float lacos)
     {
         TileBase tileParede = Resources.Load<TileBase>("Tiles/Parede");
         TileBase tileChao = Resources.Load<TileBase>("Tiles/Chao");
@@ -77,6 +79,31 @@ public static class GeradorLabirinto
             pilha.Push(proxima);
         }
 
+        // ---------- 1b) Abre algumas paredes extras (laços): mais de um caminho ----------
+        int extras = Mathf.RoundToInt(colunas * linhas * lacos);
+        for (int tentativa = 0; tentativa < extras * 20 && extras > 0; tentativa++)
+        {
+            int ax = sorteio.Next(colunas);
+            int ay = sorteio.Next(linhas);
+
+            if (sorteio.Next(2) == 0)
+            {
+                if (ax + 1 < colunas && !passagemDireita[ax, ay])
+                {
+                    passagemDireita[ax, ay] = true;
+                    extras--;
+                }
+            }
+            else
+            {
+                if (ay + 1 < linhas && !passagemCima[ax, ay])
+                {
+                    passagemCima[ax, ay] = true;
+                    extras--;
+                }
+            }
+        }
+
         // ---------- 2) Converte em tiles (true = chão, false = parede) ----------
         int largura = colunas * Passo + 1;
         int altura = linhas * Passo + 1;
@@ -120,7 +147,9 @@ public static class GeradorLabirinto
         Tilemap mapaChao = CriarMapa(raiz.transform, "Chao", -10, false, material);
         Tilemap mapaParedes = CriarMapa(raiz.transform, "Paredes", -5, true, material);
 
-        mapaFundo.color = new Color(0.55f, 0.55f, 0.6f, 1f);
+        mapaFundo.color = new Color(corParede.r * 0.6f, corParede.g * 0.6f, corParede.b * 0.6f, 1f);
+        mapaChao.color = corChao;
+        mapaParedes.color = corParede;
 
         List<Vector3Int> posChao = new List<Vector3Int>();
         List<Vector3Int> posParedes = new List<Vector3Int>();
